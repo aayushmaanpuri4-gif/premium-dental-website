@@ -268,9 +268,10 @@ ul{margin:0;padding:0;list-style:none}
 /* Mobile drawer */
 .nav-scrim{
   position:fixed;inset:0;z-index:95;background:rgba(6,43,84,.42);
-  backdrop-filter:blur(3px);opacity:0;visibility:hidden;transition:opacity .35s var(--ease),visibility .35s;
+  backdrop-filter:blur(3px);opacity:0;visibility:hidden;
+  transition:opacity .35s var(--ease),visibility 0s linear .35s;
 }
-.nav-scrim.open{opacity:1;visibility:visible}
+.nav-scrim.open{opacity:1;visibility:visible;transition:opacity .35s var(--ease),visibility 0s}
 .mobile-nav{
   position:fixed;top:0;right:0;bottom:0;z-index:96;width:min(360px,88vw);
   background:#fff;box-shadow:-24px 0 60px -30px rgba(6,43,84,.5);
@@ -552,7 +553,7 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
 .treat-body .link-arrow{margin-top:auto;align-self:flex-start}
 
 /* Why choose us */
-.why-grid{grid-template-columns:repeat(auto-fit,minmax(258px,1fr))}
+.why-grid{grid-template-columns:repeat(3,1fr)}
 .why-card{padding:30px 28px 32px;position:relative;overflow:hidden;background:#fff}
 .why-card::before{
   content:"";position:absolute;left:0;top:0;height:3px;width:100%;
@@ -615,7 +616,7 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
   background:var(--ok-bg);color:var(--ok);
 }
 .hours-status .dot{width:7px;height:7px;border-radius:50%;background:currentColor;animation:pulse 2.4s var(--ease) infinite}
-.hours-status.closed{background:#F0F3F7;color:var(--muted)}
+.hours-status.closed{background:#F0F3F7;color:#4A5D70}
 .hours-status.closed .dot{animation:none}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(.82)}}
 
@@ -721,7 +722,10 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
 .field .control > svg.chev{right:15px;left:auto;width:16px;height:16px;transform:rotate(180deg)}
 .field input::placeholder,.field textarea::placeholder{color:var(--muted-2)}
 .field input:hover,.field select:hover,.field textarea:hover{border-color:var(--brand-300)}
-.field input:focus,.field select:focus,.field textarea:focus{
+/* :focus-within is needed for input[type=date] — Chromium moves focus into an
+   inner shadow-DOM field, so :focus never matches the host element. */
+.field input:focus,.field select:focus,.field textarea:focus,
+.field input:focus-within{
   outline:none;border-color:var(--brand-500);background:#fff;
   box-shadow:0 0 0 4px rgba(44,130,232,.14);
 }
@@ -769,9 +773,10 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
 .modal-scrim{
   position:fixed;inset:0;z-index:130;background:rgba(4,26,50,.62);
   backdrop-filter:blur(6px);display:grid;place-items:center;padding:clamp(12px,3vw,32px);
-  opacity:0;visibility:hidden;transition:opacity .35s var(--ease),visibility .35s;
+  opacity:0;visibility:hidden;
+  transition:opacity .35s var(--ease),visibility 0s linear .35s;
 }
-.modal-scrim.open{opacity:1;visibility:visible}
+.modal-scrim.open{opacity:1;visibility:visible;transition:opacity .35s var(--ease),visibility 0s}
 .modal{
   width:min(920px,100%);max-height:min(88vh,860px);overflow-y:auto;background:#fff;
   border-radius:var(--r-xl);box-shadow:0 50px 100px -30px rgba(2,18,38,.7);
@@ -823,9 +828,10 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
 .lightbox{
   position:fixed;inset:0;z-index:140;background:rgba(3,16,31,.93);
   display:flex;align-items:center;justify-content:center;padding:clamp(14px,4vw,54px);
-  opacity:0;visibility:hidden;transition:opacity .35s var(--ease),visibility .35s;
+  opacity:0;visibility:hidden;
+  transition:opacity .35s var(--ease),visibility 0s linear .35s;
 }
-.lightbox.open{opacity:1;visibility:visible}
+.lightbox.open{opacity:1;visibility:visible;transition:opacity .35s var(--ease),visibility 0s}
 .lightbox figure{margin:0;max-width:100%;max-height:100%;display:flex;flex-direction:column;gap:14px;align-items:center}
 .lightbox img{
   max-width:100%;max-height:78vh;border-radius:var(--r);object-fit:contain;
@@ -840,6 +846,7 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
   backdrop-filter:blur(8px);transition:background-color .25s var(--ease),transform .25s var(--ease-out);
 }
 .lb-btn:hover{background:rgba(255,255,255,.26);transform:scale(1.06)}
+.lb-btn:focus-visible{outline:3px solid #fff;outline-offset:3px}
 .lb-btn svg{width:23px;height:23px}
 .lb-close{top:clamp(14px,3vw,28px);right:clamp(14px,3vw,28px)}
 .lb-prev{left:clamp(10px,2.4vw,28px);top:50%;margin-top:-25px}
@@ -871,7 +878,7 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
 .footer-doc svg{width:19px;height:19px;color:var(--brand-300)}
 .footer-doc b{color:#fff;font-family:var(--font-display);font-size:.9rem;display:block}
 .footer-doc span{font-size:.76rem;color:#7C9BBC}
-.footer-col h4{
+.footer-col h3{
   color:#fff;font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px;
 }
 .footer-col li{margin-bottom:10px}
@@ -899,7 +906,12 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
   font-size:.81rem;color:#7C9BBC;
 }
 .footer-bottom nav{display:flex;flex-wrap:wrap;gap:8px 20px}
-.footer-bottom a{color:#7C9BBC}
+.footer-bottom a,.footer-linkbtn{color:#7C9BBC}
+.footer-linkbtn{
+  background:none;border:0;padding:0;cursor:pointer;font:inherit;font-size:.81rem;
+  transition:color .22s var(--ease);
+}
+.footer-linkbtn:hover{color:#fff}
 .footer-bottom a:hover{color:#fff}
 
 /* ---------- 16. Floating actions ---------- */
@@ -941,6 +953,18 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
 .mobile-bar a{flex:1}
 .mobile-bar .btn{width:100%;padding:13px 12px;font-size:.86rem}
 
+/* ---------- 17. Entrance & reveal animations ---------- */
+/* The hero is above the fold, so it animates from CSS on load rather than
+   waiting for the IntersectionObserver. The h1 is the LCP element and keeps
+   full opacity throughout — fading it in would delay Largest Contentful Paint. */
+@keyframes heroRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+@keyframes heroSlide{from{transform:translateY(12px)}to{transform:none}}
+.hero-anim{animation:heroRise .72s var(--ease-out) both}
+.hero-anim--lcp{animation:heroSlide .6s var(--ease-out) both;opacity:1}
+.hero-anim[data-d="2"]{animation-delay:.10s}
+.hero-anim[data-d="3"]{animation-delay:.17s}
+.hero-anim[data-d="4"]{animation-delay:.24s}
+
 /* ---------- 17. Reveal animations ---------- */
 .reveal{opacity:0;transform:translateY(26px);transition:opacity .8s var(--ease-out),transform .8s var(--ease-out)}
 .reveal.in{opacity:1;transform:none}
@@ -959,6 +983,7 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
 }
 @media (max-width:1100px){
   .treatments-grid{grid-template-columns:repeat(2,1fr)}
+  .why-grid{grid-template-columns:repeat(2,1fr)}
 }
 @media (max-width:1080px){
   .nav-links{display:none}
@@ -996,6 +1021,7 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
   .float-stack.show{opacity:1;visibility:visible;transform:none}
   .form-grid{grid-template-columns:1fr}
   .treatments-grid{grid-template-columns:1fr}
+  .why-grid{grid-template-columns:1fr}
   .treat-cta{grid-column:span 1}
   .map-frame{aspect-ratio:4/3}
   .hero-float{left:-6px;bottom:16px;padding:11px 15px 11px 12px;max-width:212px}
@@ -1025,6 +1051,7 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
     transition-duration:.01ms !important;scroll-behavior:auto !important;
   }
   .reveal{opacity:1;transform:none}
+  .hero-anim,.hero-anim--lcp{animation:none;opacity:1;transform:none}
 }
 @media print{
   .site-header,.float-stack,.mobile-bar,.edit-bar,.modal-scrim,.lightbox,.nav-scrim,.mobile-nav{display:none !important}
@@ -1043,6 +1070,12 @@ body.edit-mode .edit-bar{transform:translate(-50%,0)}
 .toast.show{opacity:1;visibility:visible;transform:translate(-50%,0)}
 .toast.error{background:var(--err)}
 body.edit-mode .toast{bottom:92px}
+
+/* Inline prose links carry an underline — colour alone fails WCAG 1.4.1. */
+.form-note a,.legal-page p a,.hours-note a,.modal-disclaimer a{
+  text-decoration:underline;text-underline-offset:2px;text-decoration-thickness:1px;
+}
+.form-note a:hover,.legal-page p a:hover{text-decoration-thickness:2px}
 
 /* ---------- 21. Legal pages ---------- */
 .legal-header{

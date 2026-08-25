@@ -21,6 +21,16 @@
   var $ = function (s, c) { return (c || document).querySelector(s); };
   var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
 
+  /* Focus an element that has just been revealed by a class change. The overlays
+     transition `visibility`, so on the current frame the target is still hidden and
+     .focus() would silently do nothing. Two frames guarantees it has been painted. */
+  function focusWhenVisible(el) {
+    if (!el) return;
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { el.focus(); });
+    });
+  }
+
   function icon(id, cls) {
     return '<svg' + (cls ? ' class="' + cls + '"' : '') + ' aria-hidden="true"><use href="#' + id + '"/></svg>';
   }
@@ -43,7 +53,7 @@
     var gen = fig._gen = (fig._gen || 0) + 1;
     // An uploaded photo carries no network cost, so it must not wait for lazy-loading
     // to bring the slot into view before it appears.
-    if (src.indexOf('data:') === 0) img.loading = 'eager';
+    if (src.indexOf('data:') === 0) { img.loading = 'eager'; cancelProbe(fig); }
 
     var onLoad = function () {
       if (fig._gen !== gen) return;
@@ -76,12 +86,22 @@
           if (!en.isIntersecting) return;
           obs.unobserve(en.target);
           var pending = en.target._pendingSrc;
-          if (pending) { delete en.target._pendingSrc; paint(en.target, pending); }
+          delete en.target._pendingSrc;
+          // A photo may have been uploaded into this slot while the probe was
+          // still queued. Probing now would 404 and wipe the photo that is
+          // already showing, so the filled slot always wins.
+          if (pending && !en.target.classList.contains('has-image')) paint(en.target, pending);
         });
       }, { rootMargin: '400px 0px' });
     }
     fig._pendingSrc = src;
     probeIO.observe(fig);
+  }
+
+  /* Stop any queued repo-file probe for a slot that now has its own photo. */
+  function cancelProbe(fig) {
+    delete fig._pendingSrc;
+    if (probeIO) probeIO.unobserve(fig);
   }
 
   function clearSlot(fig) {
@@ -129,6 +149,11 @@
     input.accept = 'image/*';
     input.className = 'sr-only';
     input.id = 'file-' + fig.dataset.slot;
+    // The visible button is the real control, but the input still needs a name
+    // of its own and must not become a second, silent tab stop.
+    var slotName = fig.dataset.alt || fig.dataset.slot.replace(/-/g, ' ');
+    input.setAttribute('aria-label', 'Choose a photograph for: ' + slotName);
+    input.tabIndex = -1;
 
     var pick = document.createElement('button');
     pick.type = 'button';
@@ -144,7 +169,7 @@
       e.stopPropagation();
       try { localStorage.removeItem(storeKey(fig.dataset.slot)); } catch (err) {}
       clearSlot(fig);
-      if (fig.dataset.src) paint(fig, fig.dataset.src);
+      if (fig.dataset.src) probeWhenNear(fig, fig.dataset.src);
       syncSlotControls(fig);
       toast('Photo removed.');
     });
@@ -251,7 +276,7 @@
         if (!fig.dataset.slot) return;
         try { localStorage.removeItem(storeKey(fig.dataset.slot)); } catch (e) {}
         clearSlot(fig);
-        if (fig.dataset.src) paint(fig, fig.dataset.src);
+        if (fig.dataset.src) probeWhenNear(fig, fig.dataset.src);
         syncSlotControls(fig);
       });
       toast('All uploaded photos removed.');
@@ -287,7 +312,7 @@
     lb.root.classList.add('open');
     lb.root.setAttribute('aria-hidden', 'false');
     document.body.classList.add('no-scroll');
-    lb.close.focus();
+    focusWhenVisible(lb.close);
   }
 
   function renderLightbox() {
@@ -344,9 +369,18 @@
 
     document.addEventListener('keydown', function (e) {
       if (!lb.root.classList.contains('open')) return;
-      if (e.key === 'Escape') closeLightbox();
-      if (e.key === 'ArrowLeft') stepLightbox(-1);
-      if (e.key === 'ArrowRight') stepLightbox(1);
+      if (e.key === 'Escape') { closeLightbox(); return; }
+      if (e.key === 'ArrowLeft') { stepLightbox(-1); return; }
+      if (e.key === 'ArrowRight') { stepLightbox(1); return; }
+      if (e.key !== 'Tab') return;
+      var f = $$('button:not([disabled])', lb.root).filter(function (el) {
+        return !el.hidden && el.getClientRects().length > 0;
+      });
+      if (!f.length) return;
+      var first = f[0], last = f[f.length - 1];
+      if (!lb.root.contains(document.activeElement)) { e.preventDefault(); first.focus(); return; }
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     });
   }
 
@@ -366,7 +400,7 @@
     scrim.setAttribute('aria-hidden', 'false');
     document.body.classList.add('no-scroll');
     $('.modal', scrim).scrollTop = 0;
-    $('.modal-close', scrim).focus();
+    focusWhenVisible($('.modal-close', scrim));
   }
 
   function initSlotsWithin(root) {
@@ -409,8 +443,8 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && scrim.classList.contains('open')) closeModal();
       if (e.key !== 'Tab' || !scrim.classList.contains('open')) return;
-      var focusables = $$('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])', scrim)
-        .filter(function (el) { return el.offsetParent !== null; });
+      var focusables = $$('a[href],button:not([disabled]),input:not([tabindex="-1"]),select,textarea,[tabindex]:not([tabindex="-1"])', scrim)
+        .filter(function (el) { return el.getClientRects().length > 0; });
       if (!focusables.length) return;
       var first = focusables[0], last = focusables[focusables.length - 1];
       if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
