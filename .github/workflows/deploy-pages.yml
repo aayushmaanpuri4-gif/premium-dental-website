@@ -5,7 +5,13 @@ name: Deploy site to GitHub Pages
 # by hand against any branch from the Actions tab.
 on:
   push:
-    branches: [claude/dental-clinic-website-eulkvx]
+    branches:
+      # The default branch — the production source once PR #1 is merged.
+      - claude/dental-clinic-website-eulkvx
+      # The review branch, which currently holds the corrected site while the
+      # default branch still has the earlier draft. Remove this line once the
+      # pull request is merged, so only the default branch publishes.
+      - claude/puri-dental-clinic-website-ku1dj7
     paths-ignore:
       - '**/*.md'
   workflow_dispatch:
