@@ -1,0 +1,87 @@
+name: Deploy site to GitHub Pages
+
+# The site is plain static files, so there is nothing to build — the repo root
+# is published as-is. Runs on pushes to the default branch, and can be run
+# by hand against any branch from the Actions tab.
+on:
+  push:
+    branches:
+      # The default branch — the production source once PR #1 is merged.
+      - claude/dental-clinic-website-eulkvx
+      # The review branch, which currently holds the corrected site while the
+      # default branch still has the earlier draft. Remove this line once the
+      # pull request is merged, so only the default branch publishes.
+      - claude/puri-dental-clinic-website-ku1dj7
+    paths-ignore:
+      - '**/*.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it half-published.
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        # NOTE: Pages must be switched on once by hand before this can succeed —
+        # Settings -> Pages -> Build and deployment -> Source: "GitHub Actions".
+        # enablement:true is deliberately NOT set: the workflow's GITHUB_TOKEN is
+        # not allowed to create a Pages site ("Resource not accessible by
+        # integration"), so it fails confusingly rather than helping.
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Explain what to do if Pages is not enabled
+        if: failure() && steps.pages.outcome == 'failure'
+        run: |
+          echo "::error title=GitHub Pages is not enabled::Open Settings -> Pages on this repository, set 'Source' to 'GitHub Actions', then re-run this workflow. The deploy cannot switch Pages on by itself."
+          exit 1
+
+      - name: Sanity-check the files being published
+        run: |
+          set -euo pipefail
+          for f in index.html privacy-policy.html terms-conditions.html \
+                   assets/css/style.css assets/css/fonts.css assets/js/main.js \
+                   assets/og-cover.png .nojekyll; do
+            [ -f "$f" ] || { echo "::error::missing required file $f"; exit 1; }
+          done
+          node --check assets/js/main.js
+          echo "All required files present and main.js parses."
+
+      - name: List the photographs that actually exist
+        # The site reads this to avoid requesting photos the clinic has not
+        # added yet. Regenerated on every deploy from the real directory, so
+        # dropping a file into assets/images/ is all that is needed.
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          d = 'assets/images'
+          exts = ('.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif')
+          files = sorted(f for f in os.listdir(d) if f.lower().endswith(exts))
+          json.dump({'files': files}, open(os.path.join(d, 'manifest.json'), 'w'), indent=1)
+          print(f'{len(files)} photograph(s) published:', files or '(none yet)')
+          PY
+
+      - name: Upload the site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
