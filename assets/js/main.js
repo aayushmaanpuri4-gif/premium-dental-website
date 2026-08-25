@@ -98,6 +98,39 @@
     probeIO.observe(fig);
   }
 
+  /* Which photos actually exist in assets/images/. The deploy workflow writes
+     manifest.json from the real directory listing, so a published site never
+     requests a photograph the clinic has not added yet.
+       null  = not resolved yet   false = no manifest (fall back to probing)
+       Set   = the filenames that exist */
+  var manifest = null;
+  var manifestQueue = [];
+
+  function resolveRepoPhoto(fig, src) {
+    if (manifest === null) { manifestQueue.push([fig, src]); return; }
+    if (manifest === false) { probeWhenNear(fig, src); return; }
+    if (manifest.has(src.split('/').pop())) probeWhenNear(fig, src);
+  }
+
+  function loadManifest() {
+    function settle(value) {
+      manifest = value;
+      var q = manifestQueue;
+      manifestQueue = [];
+      q.forEach(function (pair) { resolveRepoPhoto(pair[0], pair[1]); });
+    }
+    // fetch() cannot read a local file, so opening index.html directly keeps
+    // the original probe-and-fall-back behaviour.
+    if (location.protocol === 'file:' || typeof fetch !== 'function') { settle(false); return; }
+    fetch('assets/images/manifest.json', { cache: 'no-cache' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        var files = data && (Array.isArray(data) ? data : data.files);
+        settle(Array.isArray(files) ? new Set(files) : false);
+      })
+      .catch(function () { settle(false); });
+  }
+
   /* Stop any queued repo-file probe for a slot that now has its own photo. */
   function cancelProbe(fig) {
     delete fig._pendingSrc;
@@ -124,10 +157,7 @@
       var saved = null;
       try { saved = name ? localStorage.getItem(storeKey(name)) : null; } catch (e) { saved = null; }
       if (saved) paint(fig, saved);
-      else if (fig.dataset.src) {
-        if (fig.hasAttribute('data-eager')) paint(fig, fig.dataset.src);
-        else probeWhenNear(fig, fig.dataset.src);
-      }
+      else if (fig.dataset.src) resolveRepoPhoto(fig, fig.dataset.src);
 
       if (fig.hasAttribute('data-lightbox') && !$('.ph-zoom', fig)) {
         var zoom = document.createElement('span');
@@ -169,7 +199,7 @@
       e.stopPropagation();
       try { localStorage.removeItem(storeKey(fig.dataset.slot)); } catch (err) {}
       clearSlot(fig);
-      if (fig.dataset.src) probeWhenNear(fig, fig.dataset.src);
+      if (fig.dataset.src) resolveRepoPhoto(fig, fig.dataset.src);
       syncSlotControls(fig);
       toast('Photo removed.');
     });
@@ -276,7 +306,7 @@
         if (!fig.dataset.slot) return;
         try { localStorage.removeItem(storeKey(fig.dataset.slot)); } catch (e) {}
         clearSlot(fig);
-        if (fig.dataset.src) probeWhenNear(fig, fig.dataset.src);
+        if (fig.dataset.src) resolveRepoPhoto(fig, fig.dataset.src);
         syncSlotControls(fig);
       });
       toast('All uploaded photos removed.');
@@ -412,7 +442,8 @@
       if (img && !img.getAttribute('alt')) img.setAttribute('alt', fig.dataset.alt || '');
       var saved = null;
       try { saved = localStorage.getItem(storeKey(fig.dataset.slot)); } catch (e) {}
-      paint(fig, saved || fig.dataset.src || '');
+      if (saved) paint(fig, saved);
+      else if (fig.dataset.src) resolveRepoPhoto(fig, fig.dataset.src);
       if (fig.dataset.slot && !$('.ph-actions', fig)) buildSlotControls(fig);
     });
   }
@@ -738,6 +769,7 @@
 
   /* ---------------- Boot ---------------- */
   function boot() {
+    loadManifest();
     initSlots();
     initEditMode();
     initLightbox();

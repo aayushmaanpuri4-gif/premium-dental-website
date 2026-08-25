@@ -25,9 +25,14 @@ straight from a phone are fine.
 ## 2. Permanent way — add the files to this folder
 
 Save the photograph into this folder using the exact filename from the list
-below, then publish the site. It will appear for every visitor, on every
-device, and will take priority over nothing — a browser upload for the same
-slot overrides it locally.
+below, commit it, and push. The deploy workflow rebuilds `manifest.json` from
+whatever is actually in this folder, so the photo appears for every visitor on
+every device with no other change required. (A browser upload for the same
+slot still overrides it on that one computer.)
+
+`manifest.json` is generated — do not edit it by hand. It exists so the site
+only ever requests photographs that are really there, instead of asking for
+every possible filename and getting a 404 for the ones not added yet.
 
 Use JPEG, keep the longest edge around 1600–2000px, and aim for under 400 KB
 per file. The listed aspect ratio is the shape the design crops to, so framing
