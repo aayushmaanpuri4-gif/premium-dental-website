@@ -25,11 +25,19 @@
   var mobileNavClose = document.getElementById("mobileNavClose");
 
   function openMenu() {
-    if (mobileNav) mobileNav.classList.add("open");
+    if (mobileNav) {
+      mobileNav.classList.add("open");
+      mobileNav.setAttribute("aria-hidden", "false");
+    }
+    if (menuToggle) menuToggle.setAttribute("aria-expanded", "true");
     document.body.style.overflow = "hidden";
   }
   function closeMenu() {
-    if (mobileNav) mobileNav.classList.remove("open");
+    if (mobileNav) {
+      mobileNav.classList.remove("open");
+      mobileNav.setAttribute("aria-hidden", "true");
+    }
+    if (menuToggle) menuToggle.setAttribute("aria-expanded", "false");
     document.body.style.overflow = "";
   }
   if (menuToggle) menuToggle.addEventListener("click", openMenu);
@@ -39,6 +47,9 @@
       link.addEventListener("click", closeMenu);
     });
   }
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && mobileNav && mobileNav.classList.contains("open")) closeMenu();
+  });
 
   /* Reveal on scroll */
   var revealEls = document.querySelectorAll(".reveal, .reveal-stagger");
