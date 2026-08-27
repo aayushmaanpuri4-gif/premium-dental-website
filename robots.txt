@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://aayushmaanpuri4-gif.github.io/premium-dental-website/sitemap.xml

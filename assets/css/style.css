@@ -69,6 +69,22 @@ p { margin: 0; }
 
 section { position: relative; }
 
+/* ---------- Skip link ---------- */
+.skip-link {
+  position: absolute;
+  top: -60px;
+  left: 16px;
+  z-index: 1000;
+  background: var(--navy-900);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 14px;
+  transition: top 0.25s var(--ease);
+}
+.skip-link:focus { top: 16px; }
+
 /* ---------- Reveal-on-scroll ---------- */
 .reveal {
   opacity: 0;
